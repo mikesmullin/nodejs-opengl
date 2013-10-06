@@ -5,11 +5,21 @@ Image = WebGL.Image
 document = WebGL.document()
 ATB = document.AntTweakBar
 log = console.log
-alert = console.warn
 
-document.setTitle "CoffeeScript Node.JS OpenGL Demo"
-requestAnimationFrame = document.requestAnimationFrame
+currentlyPressedKeys = {}
+gl = undefined
 
+shaderProgram = undefined
+mvMatrix = mat4.create()
+mvMatrixStack = []
+pMatrix = mat4.create()
+degToRad = (degrees) -> degrees * Math.PI / 180
+cubeVertexPositionBuffer = undefined
+cubeVertexNormalBuffer = undefined
+cubeVerticesColorBuffer = undefined
+cubeVertexIndexBuffer = undefined
+lastTime = 0
+fps = 0
 twBar = undefined
 xRot = 0
 xSpeed = 5
@@ -17,19 +27,8 @@ yRot = 0
 ySpeed = -5
 z = -5.0
 
-gl = undefined
-shaderProgram = undefined
-mvMatrix = mat4.create()
-mvMatrixStack = []
-pMatrix = mat4.create()
-degToRad = (degrees) -> degrees * Math.PI / 180
-currentlyPressedKeys = {}
-cubeVertexPositionBuffer = undefined
-cubeVertexNormalBuffer = undefined
-cubeVerticesColorBuffer = undefined
-cubeVertexIndexBuffer = undefined
-lastTime = 0
-fps = 0
+# TODO: next line doesn't work; compare test2.coffee example
+document.setTitle "CoffeeScript Node.JS OpenGL Demo"
 
 document.on "resize", (evt) ->
   document.createWindow evt.width, evt.height
@@ -40,20 +39,20 @@ document.on "resize", (evt) ->
   ATB.WindowSize evt.width, evt.height
   return
 
-document.on "KEYUP", (evt) ->
-  currentlyPressedKeys[evt.scancode] = false
+document.on "keyup", (evt) ->
+  currentlyPressedKeys[evt.keyCode] = false
   return
 
-document.on "KEYDOWN", (evt) ->
-  console.log("[KEYDOWN] mod: "+evt.mod+" sym: "+evt.sym+" scancode: "+evt.scancode);
-  currentlyPressedKeys[evt.scancode] = true
+document.on "keydown", (evt) ->
+  #console.log "[KEYDOWN] evt: ", evt
+  currentlyPressedKeys[evt.keyCode] = true
   # handleKeys
-  z -= 0.05  if currentlyPressedKeys[35] # ]
-  z += 0.05  if currentlyPressedKeys[51] # \
-  ySpeed -= 1  if currentlyPressedKeys[113] # Left cursor key
-  ySpeed += 1  if currentlyPressedKeys[114] # Right cursor key
-  xSpeed -= 1  if currentlyPressedKeys[111] # Up cursor key
-  xSpeed += 1  if currentlyPressedKeys[116] # Down cursor key
+  z -= 0.40  if currentlyPressedKeys[93] # ]
+  z += 0.40  if currentlyPressedKeys[92] # \
+  ySpeed -= 20  if currentlyPressedKeys[285] # Left cursor key
+  ySpeed += 20  if currentlyPressedKeys[286] # Right cursor key
+  xSpeed -= 20  if currentlyPressedKeys[283] # Up cursor key
+  xSpeed += 20  if currentlyPressedKeys[284] # Down cursor key
   #console.log("speed: "+xSpeed+" "+ySpeed+" "+z);
   return
 
@@ -127,7 +126,7 @@ webGLStart = ->
     gl.viewportWidth = canvas.width
     gl.viewportHeight = canvas.height
   catch e
-    alert "Could not initialise WebGL, sorry :-("
+    throw "Could not initialize WebGL, sorry :-("
     process.exit -1
 
   # -----------------
@@ -167,7 +166,7 @@ webGLStart = ->
     gl.shaderSource shader, str
     gl.compileShader shader
     unless gl.getShaderParameter(shader, gl.COMPILE_STATUS)
-      alert gl.getShaderInfoLog(shader)
+      throw gl.getShaderInfoLog(shader)
       return null
     return shader
   fragmentShader = getShader(gl, "shader-fs")
@@ -176,7 +175,7 @@ webGLStart = ->
   gl.attachShader shaderProgram, vertexShader
   gl.attachShader shaderProgram, fragmentShader
   gl.linkProgram shaderProgram
-  alert "Could not initialise shaders. Error: " + gl.getProgramInfoLog(shaderProgram)  unless gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)
+  throw "Could not initialise shaders. Error: " + gl.getProgramInfoLog(shaderProgram)  unless gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)
   gl.useProgram shaderProgram
   shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition")
   gl.enableVertexAttribArray shaderProgram.vertexPositionAttribute
@@ -350,7 +349,7 @@ webGLStart = ->
     animate timeNow
     drawATB()
     gl.finish() # for timing
-    requestAnimationFrame tick, 0
+    document.requestAnimationFrame tick, 0
     return
   tick()
   return
