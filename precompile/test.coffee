@@ -1,6 +1,7 @@
-glfw = require 'node-glfw'
 util = require 'util'
+glfw = require 'node-glfw'
 log = console.log
+
 version = glfw.GetVersion()
 log "glfw " + version.major + "." + version.minor + "." + version.rev
 
@@ -14,11 +15,11 @@ glfw.OpenWindowHint glfw.OPENGL_MAJOR_VERSION, 3
 glfw.OpenWindowHint glfw.OPENGL_MINOR_VERSION, 2
 # r,g,b,a bits
 # depth, stencil bits
-unless glfw.OpenWindow(640, 480, 0, 0, 0, 0, 0, 0, glfw.WINDOW)
+unless glfw.OpenWindow 640, 480, 0, 0, 0, 0, 0, 0, glfw.WINDOW
   log "Failed to open GLFW window"
   glfw.Terminate()
   process.exit -1
-glfw.SetWindowTitle "Trilinear interpolation"
+glfw.SetWindowTitle "Node.JS OpenGL - Woot!"
 
 # testing events
 glfw.events.on "keydown", (evt) ->
@@ -50,7 +51,7 @@ loop
   delta = end - start
   start = end
   
-  #log('time: '+(delta*1000)+'ms');
+  log('time: '+(delta*1000)+'ms');
   mouse = glfw.GetMousePos()
   
   #log("mouse: "+mouse.x+', '+mouse.y);
