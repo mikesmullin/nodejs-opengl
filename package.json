@@ -1,0 +1,16 @@
+{
+  "name": "gl",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "prestart": "coffee --bare -o static/ precompile/",
+    "start": "node static/test.js"
+  },
+  "author": "",
+  "license": "BSD",
+  "dependencies": {
+    "node-glfw": "~0.1.2",
+    "node-webgl": "mikeseven/node-webgl"
+  }
+}
