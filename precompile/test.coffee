@@ -1,4 +1,4 @@
-nodejs = true
+#{ vec2, vec3, vec4, mat2, mat3, mat4, quat } = require 'gl-matrix'
 { vec3, mat4, quat4 } = require 'gl-matrix'
 WebGL = require 'node-webgl'
 Image = WebGL.Image
@@ -7,7 +7,7 @@ ATB = document.AntTweakBar
 log = console.log
 alert = console.warn
 
-document.setTitle "cube with AntTweakBar"
+document.setTitle "CoffeeScript Node.JS OpenGL Demo"
 requestAnimationFrame = document.requestAnimationFrame
 
 twBar = undefined
@@ -16,6 +16,20 @@ xSpeed = 5
 yRot = 0
 ySpeed = -5
 z = -5.0
+
+gl = undefined
+shaderProgram = undefined
+mvMatrix = mat4.create()
+mvMatrixStack = []
+pMatrix = mat4.create()
+degToRad = (degrees) -> degrees * Math.PI / 180
+currentlyPressedKeys = {}
+cubeVertexPositionBuffer = undefined
+cubeVertexNormalBuffer = undefined
+cubeVerticesColorBuffer = undefined
+cubeVertexIndexBuffer = undefined
+lastTime = 0
+fps = 0
 
 document.on "resize", (evt) ->
   document.createWindow evt.width, evt.height
@@ -26,30 +40,87 @@ document.on "resize", (evt) ->
   ATB.WindowSize evt.width, evt.height
   return
 
-shaders =
-  "shader-fs": [
-      "#ifdef GL_ES",
-      "  precision mediump float;",
-      "#endif",
-      "varying vec4 vColor;",
-      "void main(void) {",
-      "    gl_FragColor = vColor;",
-      "}"
-  ].join("\n"),
-  "shader-vs": [
-    "attribute vec3 aVertexPosition;",
-    "attribute vec4 aVertexColor;",
-    "uniform mat4 uMVMatrix;",
-    "uniform mat4 uPMatrix;",
-    "varying vec4 vColor;",
-    "void main(void) {",
-    "    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);",
-    "    vColor = aVertexColor;",
-    "}"
-  ].join("\n")
+document.on "KEYUP", (evt) ->
+  currentlyPressedKeys[evt.scancode] = false
+  return
 
-gl = undefined
-initGL = (canvas) ->
+document.on "KEYDOWN", (evt) ->
+  console.log("[KEYDOWN] mod: "+evt.mod+" sym: "+evt.sym+" scancode: "+evt.scancode);
+  currentlyPressedKeys[evt.scancode] = true
+  # handleKeys
+  z -= 0.05  if currentlyPressedKeys[35] # ]
+  z += 0.05  if currentlyPressedKeys[51] # \
+  ySpeed -= 1  if currentlyPressedKeys[113] # Left cursor key
+  ySpeed += 1  if currentlyPressedKeys[114] # Right cursor key
+  xSpeed -= 1  if currentlyPressedKeys[111] # Up cursor key
+  xSpeed += 1  if currentlyPressedKeys[116] # Down cursor key
+  #console.log("speed: "+xSpeed+" "+ySpeed+" "+z);
+  return
+
+drawScene = ->
+  gl.viewport 0, 0, gl.viewportWidth, gl.viewportHeight
+  gl.clear gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT
+  mat4.perspective 45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix
+  mat4.identity mvMatrix
+  mat4.translate mvMatrix, [0.0, 0.0, z]
+  mat4.rotate mvMatrix, degToRad(xRot), [1, 0, 0]
+  mat4.rotate mvMatrix, degToRad(yRot), [0, 1, 0]
+  gl.bindBuffer gl.ARRAY_BUFFER, cubeVertexPositionBuffer
+  gl.vertexAttribPointer shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0
+  gl.blendFunc gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA
+  gl.enable gl.BLEND
+  gl.disable gl.DEPTH_TEST
+  gl.bindBuffer gl.ARRAY_BUFFER, cubeVerticesColorBuffer
+  gl.vertexAttribPointer shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0
+  gl.enable gl.CULL_FACE
+  gl.cullFace gl.FRONT
+  gl.bindBuffer gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer
+  setMatrixUniforms = ->
+    gl.uniformMatrix4fv shaderProgram.pMatrixUniform, false, pMatrix
+    gl.uniformMatrix4fv shaderProgram.mvMatrixUniform, false, mvMatrix
+    return
+  setMatrixUniforms()
+  gl.drawElements gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0
+  gl.cullFace gl.BACK
+  gl.drawElements gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0
+
+  # cleanup GL state
+  gl.bindBuffer gl.ARRAY_BUFFER, null
+  gl.bindBuffer gl.ELEMENT_ARRAY_BUFFER, null
+  return
+
+animate = (timeNow) ->
+  return  unless timeNow # first time, timeNow may be undefined
+  unless lastTime is 0
+    elapsed = timeNow - lastTime
+    fps = Math.round(1000 / elapsed)
+    xRot += (xSpeed * elapsed) / 1000.0
+    yRot += (ySpeed * elapsed) / 1000.0
+  lastTime = timeNow
+  return
+
+drawATB = ->
+  # disableProgram
+  # Before calling AntTweakBar or any other library that could use programs,
+  # one must make sure to disable the VertexAttribArray used by the current
+  # program otherwise this may have some unpredictable consequences aka
+  # wrong vertex attrib arrays being used by another program!
+  gl.disableVertexAttribArray shaderProgram.vertexPositionAttribute
+  gl.disableVertexAttribArray shaderProgram.vertexColorAttribute
+  gl.useProgram null
+
+  ATB.Draw()
+
+  # enableProgram
+  gl.useProgram shaderProgram
+  gl.enableVertexAttribArray shaderProgram.vertexPositionAttribute
+  gl.enableVertexAttribArray shaderProgram.vertexColorAttribute
+  return
+
+webGLStart = ->
+  canvas = document.createElement("cube-canvas")
+
+  # -----------------
   log "init WebGL"
   try
     gl = canvas.getContext("experimental-webgl")
@@ -58,12 +129,34 @@ initGL = (canvas) ->
   catch e
     alert "Could not initialise WebGL, sorry :-("
     process.exit -1
-  return
 
-getShader = (gl, id) ->
-  shader = undefined
-  if nodejs
-    return null  unless shaders.hasOwnProperty(id)
+  # -----------------
+  log "init GL shaders"
+  getShader = (gl, id) ->
+    shaders =
+      "shader-fs": [
+          "#ifdef GL_ES",
+          "  precision mediump float;",
+          "#endif",
+          "varying vec4 vColor;",
+          "void main(void) {",
+          "    gl_FragColor = vColor;",
+          "}"
+      ].join("\n"),
+      "shader-vs": [
+        "attribute vec3 aVertexPosition;",
+        "attribute vec4 aVertexColor;",
+        "uniform mat4 uMVMatrix;",
+        "uniform mat4 uPMatrix;",
+        "varying vec4 vColor;",
+        "void main(void) {",
+        "    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);",
+        "    vColor = aVertexColor;",
+        "}"
+      ].join("\n")
+
+    shader = undefined
+    return null unless shaders.hasOwnProperty(id)
     str = shaders[id]
     if id.match(/-fs/)
       shader = gl.createShader(gl.FRAGMENT_SHADER)
@@ -71,30 +164,12 @@ getShader = (gl, id) ->
       shader = gl.createShader(gl.VERTEX_SHADER)
     else
       return null
-  else
-    shaderScript = document.getElementById(id)
-    return null  unless shaderScript
-    str = ""
-    k = shaderScript.firstChild
-    while k
-      str += k.textContent  if k.nodeType is 3
-      k = k.nextSibling
-    if shaderScript.type is "x-shader/x-fragment"
-      shader = gl.createShader(gl.FRAGMENT_SHADER)
-    else if shaderScript.type is "x-shader/x-vertex"
-      shader = gl.createShader(gl.VERTEX_SHADER)
-    else
+    gl.shaderSource shader, str
+    gl.compileShader shader
+    unless gl.getShaderParameter(shader, gl.COMPILE_STATUS)
+      alert gl.getShaderInfoLog(shader)
       return null
-  gl.shaderSource shader, str
-  gl.compileShader shader
-  unless gl.getShaderParameter(shader, gl.COMPILE_STATUS)
-    alert gl.getShaderInfoLog(shader)
-    return null
-  return shader
-
-shaderProgram = undefined
-initShaders = ->
-  log "init GL shaders"
+    return shader
   fragmentShader = getShader(gl, "shader-fs")
   vertexShader = getShader(gl, "shader-vs")
   shaderProgram = gl.createProgram()
@@ -109,66 +184,8 @@ initShaders = ->
   gl.enableVertexAttribArray shaderProgram.vertexColorAttribute
   shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix")
   shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix")
-  return
 
-mvMatrix = mat4.create()
-mvMatrixStack = []
-pMatrix = mat4.create()
-
-mvPushMatrix = ->
-  copy = mat4.create()
-  mat4.set mvMatrix, copy
-  mvMatrixStack.push copy
-  return
-
-mvPopMatrix = ->
-  throw "Invalid popMatrix!"  if mvMatrixStack.length is 0
-  mvMatrix = mvMatrixStack.pop()
-  return
-
-setMatrixUniforms = ->
-  gl.uniformMatrix4fv shaderProgram.pMatrixUniform, false, pMatrix
-  gl.uniformMatrix4fv shaderProgram.mvMatrixUniform, false, mvMatrix
-  return
-
-degToRad = (degrees) -> degrees * Math.PI / 180
-
-currentlyPressedKeys = {}
-
-document.on "KEYDOWN", (evt) ->
-  #console.log("[KEYDOWN] mod: "+evt.mod+" sym: "+evt.sym+" scancode: "+evt.scancode);
-  currentlyPressedKeys[evt.scancode] = true
-  handleKeys()
-  return
-
-document.on "KEYUP", (evt) ->
-  currentlyPressedKeys[evt.scancode] = false
-  return
-
-handleKeyDown = (event) ->
-  currentlyPressedKeys[event.keyCode] = true
-  return
-
-handleKeyUp = (event) ->
-  currentlyPressedKeys[event.keyCode] = false
-  return
-
-handleKeys = ->
-  z -= 0.05  if currentlyPressedKeys[35] # ]
-  z += 0.05  if currentlyPressedKeys[51] # \
-  ySpeed -= 1  if currentlyPressedKeys[113] # Left cursor key
-  ySpeed += 1  if currentlyPressedKeys[114] # Right cursor key
-  xSpeed -= 1  if currentlyPressedKeys[111] # Up cursor key
-  xSpeed += 1  if currentlyPressedKeys[116] # Down cursor key
-  #console.log("speed: "+xSpeed+" "+ySpeed+" "+z);
-  return
-
-cubeVertexPositionBuffer = undefined
-cubeVertexNormalBuffer = undefined
-cubeVerticesColorBuffer = undefined
-cubeVertexIndexBuffer = undefined
-
-initBuffers = ->
+  # -----------------
   log "init GL buffers"
   vertices = [
     # Front face
@@ -278,123 +295,8 @@ initBuffers = ->
   gl.bufferData gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW
   cubeVertexIndexBuffer.itemSize = 1
   cubeVertexIndexBuffer.numItems = 36
-  return
 
-initBuffers2 = ->
-  n = [
-    [-1.0, 0.0, 0.0],
-    [0.0, 1.0, 0.0],
-    [1.0, 0.0, 0.0],
-    [0.0, -1.0, 0.0],
-    [0.0, 0.0, 1.0],
-    [0.0, 0.0, -1.0]
-  ]
-  faces = [
-    [0, 1, 2, 3],
-    [3, 2, 6, 7],
-    [7, 6, 5, 4],
-    [4, 5, 1, 0],
-    [5, 6, 2, 1],
-    [7, 4, 0, 3]
-  ]
-  v = new Array(8)
-  i = 0
-
-  while i < 8
-    v[i] = new Array(4)
-    i++
-  size = 2
-  v[0][0] = v[1][0] = v[2][0] = v[3][0] = -size / 2
-  v[4][0] = v[5][0] = v[6][0] = v[7][0] = size / 2
-  v[0][1] = v[1][1] = v[4][1] = v[5][1] = -size / 2
-  v[2][1] = v[3][1] = v[6][1] = v[7][1] = size / 2
-  v[0][2] = v[3][2] = v[4][2] = v[7][2] = -size / 2
-  v[1][2] = v[2][2] = v[5][2] = v[6][2] = size / 2
-  normals = new Array()
-  vertices = new Array()
-  i = 5
-
-  while i >= 0
-    normals.push n[i][0], n[i][1], n[i][2]
-    vertices.push v[faces[i][0]][0], v[faces[i][0]][1], v[faces[i][0]][2]
-    vertices.push v[faces[i][0]][1], v[faces[i][1]][1], v[faces[i][1]][2]
-    vertices.push v[faces[i][0]][2], v[faces[i][2]][1], v[faces[i][2]][2]
-    vertices.push v[faces[i][0]][3], v[faces[i][3]][1], v[faces[i][3]][2]
-    i--
-  return
-
-drawScene = ->
-  gl.viewport 0, 0, gl.viewportWidth, gl.viewportHeight
-  gl.clear gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT
-  mat4.perspective 45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix
-  mat4.identity mvMatrix
-  mat4.translate mvMatrix, [0.0, 0.0, z]
-  mat4.rotate mvMatrix, degToRad(xRot), [1, 0, 0]
-  mat4.rotate mvMatrix, degToRad(yRot), [0, 1, 0]
-  gl.bindBuffer gl.ARRAY_BUFFER, cubeVertexPositionBuffer
-  gl.vertexAttribPointer shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0
-  gl.blendFunc gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA
-  gl.enable gl.BLEND
-  gl.disable gl.DEPTH_TEST
-  gl.bindBuffer gl.ARRAY_BUFFER, cubeVerticesColorBuffer
-  gl.vertexAttribPointer shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0
-  gl.enable gl.CULL_FACE
-  gl.cullFace gl.FRONT
-  gl.bindBuffer gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer
-  setMatrixUniforms()
-  gl.drawElements gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0
-  gl.cullFace gl.BACK
-  gl.drawElements gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0
-
-  # cleanup GL state
-  gl.bindBuffer gl.ARRAY_BUFFER, null
-  gl.bindBuffer gl.ELEMENT_ARRAY_BUFFER, null
-  return
-
-lastTime = 0
-fps = 0
-
-animate = (timeNow) ->
-  return  unless timeNow # first time, timeNow may be undefined
-  unless lastTime is 0
-    elapsed = timeNow - lastTime
-    fps = Math.round(1000 / elapsed)
-    xRot += (xSpeed * elapsed) / 1000.0
-    yRot += (ySpeed * elapsed) / 1000.0
-  lastTime = timeNow
-  return
-
-# Before calling AntTweakBar or any other library that could use programs,
-# * one must make sure to disable the VertexAttribArray used by the current
-# * program otherwise this may have some unpredictable consequences aka
-# * wrong vertex attrib arrays being used by another program!
-enableProgram = ->
-  gl.useProgram shaderProgram
-  gl.enableVertexAttribArray shaderProgram.vertexPositionAttribute
-  gl.enableVertexAttribArray shaderProgram.vertexColorAttribute
-  return
-
-disableProgram = ->
-  gl.disableVertexAttribArray shaderProgram.vertexPositionAttribute
-  gl.disableVertexAttribArray shaderProgram.vertexColorAttribute
-  gl.useProgram null
-  return
-
-drawATB = ->
-  disableProgram()
-  ATB.Draw()
-  enableProgram()
-  return
-
-tick = (timeNow) ->
-  drawScene timeNow
-  animate timeNow
-  drawATB()
-  gl.finish() # for timing
-  requestAnimationFrame tick, 0
-  return
-
-initAntTweakBar = (canvas) ->
+  #---------------
   log "init AntTweakBar"
   ATB.Init()
   ATB.Define " GLOBAL help='This example shows how to integrate AntTweakBar with GLFW and OpenGL.' " # Message added to the help bar.
@@ -439,18 +341,17 @@ initAntTweakBar = (canvas) ->
     getter: (data) -> fps
   , " label='fps' help='frames per second' ")
   #twBar.AddButton("toto",speedup,"dummy value"," label='misc' ");
-  return
 
-webGLStart = ->
-  canvas = document.createElement("cube-canvas")
-  initGL canvas
-  initShaders()
-  initBuffers()
-
-  #initBuffers2();
-  initAntTweakBar canvas
+  #---------------
   gl.clearColor 0, 0, 0, 1
   gl.enable gl.DEPTH_TEST
+  tick = (timeNow) ->
+    drawScene timeNow
+    animate timeNow
+    drawATB()
+    gl.finish() # for timing
+    requestAnimationFrame tick, 0
+    return
   tick()
   return
 
