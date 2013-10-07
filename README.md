@@ -54,6 +54,23 @@ npm start
 ## Miscellaneous Notes
 
 ```
+install
+  strongloop node or regular node 64-bit .msi
+  
+  Visual Studio 2012 Express for Windows Desktop - English (with C++)
+  I also installed Update 3 when it prompted it, but its probably unnecessary
+  http://www.microsoft.com/visualstudio/eng/downloads
+  
+  http://www.glfw.org/download.html
+
+  http://www.cmake.org/files/v2.8/cmake-2.8.11.2-win32-x86.exe ( probably not needed)
+  http://softlayer-dal.dl.sourceforge.net/project/glew/glew/1.10.0/glew-1.10.0-win32.zip ( probably not needed )
+  http://softlayer-dal.dl.sourceforge.net/project/freeimage/Binary%20Distribution/3.15.4/FreeImage3154Win32.zip ( probably not needed )
+
+
+
+
+
 finish complete windows installation instructions to get the opengl nodejs to work
 install cygwin 17
   comes with mintty
