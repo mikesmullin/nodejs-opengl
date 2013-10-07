@@ -1,3 +1,13 @@
+# Node.JS OpenGL
+
+The point of this is to make cross-platform 3d game development easy with:
+
+* CoffeeScript (minimal syntax assists with continuation passing, enumeration, and parallel programming flow control)
+* Node.JS (performant libuv async i/o, libev event loop, v8 javascript interpreter)
+* OpenGL (free cross-platform video acceleration)
+
+## Installation
+
 You have to carefully follow the installation instructions in the README of the node_modules/ included.
 Then you can run the tests on each node_module, which are pretty impressive by themselves.
 
@@ -5,23 +15,35 @@ Basically install Visual Studio Express Edition 2012 with C++.
 
 Then copy the .DLL files you need for GLEW, GLFW, FreeImage, etc. to:
 
-C:\Windows\System32\
+`C:\Windows\System32\`
 
 Then copy the 32-bit .LIB files to: 
 
-C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\lib\
+`C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\lib\`
 
 Then copy the 64-bit .LIB files to: 
 
-C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\lib\amd64\
+`C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\lib\amd64\`
 
 Then copy the .H files to:
 
-C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\include\
+`C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\include\`
 
 Notice that the GLEW.h goes under:
 
-C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\include\GL\
+`C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\include\GL\`
+
+```bash
+git clone # ...
+npm install
+```
+
+## Usage
+
+```bash
+npm start
+```
+
 
 
 
