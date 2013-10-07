@@ -12,6 +12,7 @@
   "dependencies": {
     "node-glfw": "~0.1.2",
     "node-webgl": "mikeseven/node-webgl",
-    "gl-matrix": "~2.0.0"
+    "gl-matrix": "~2.0.0",
+    "glob": "~3.2.6"
   }
 }

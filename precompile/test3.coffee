@@ -223,6 +223,7 @@ webGLStart = ->
   gl.bufferData gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW
   cubeVertexPositionBuffer.itemSize = 3
   cubeVertexPositionBuffer.numItems = 24
+
   vertexNormals = [
     # Front face
     0.0,  0.0,  1.0,
@@ -260,6 +261,7 @@ webGLStart = ->
   gl.bufferData gl.ARRAY_BUFFER, new Float32Array(vertexNormals), gl.STATIC_DRAW
   cubeVertexNormalBuffer.itemSize = 3
   cubeVertexNormalBuffer.numItems = 24
+
   colors = [
     [ 1.0, 1.0, 1.0, 0.5 ], # Front face: white
     [ 1.0, 0.0, 0.0, 0.5 ], # Back face: red
@@ -269,18 +271,14 @@ webGLStart = ->
     [ 1.0, 0.0, 1.0, 0.5 ]  # Left face: purple
   ]
   generatedColors = []
-  j = 0
-  while j < 6
+  j = 0; while ++j <= 6
     c = colors[j]
-    i = 0
-
-    while i < 4
+    i = 0; while ++i <= 4
       generatedColors = generatedColors.concat(c)
-      i++
-    j++
   cubeVerticesColorBuffer = gl.createBuffer()
   gl.bindBuffer gl.ARRAY_BUFFER, cubeVerticesColorBuffer
   gl.bufferData gl.ARRAY_BUFFER, new Float32Array(generatedColors), gl.STATIC_DRAW
+
   cubeVertexIndices = [
     0, 1, 2,      0, 2, 3,    # Front face
     4, 5, 6,      4, 6, 7,    # Back face
