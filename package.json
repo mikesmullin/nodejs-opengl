@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "prestart": "coffee --bare -o static/ precompile/",
-    "start": "node static/test.js"
+    "start": "node static/test.js",
+    "debug": "slnode debug -s static/test.js"
   },
   "author": "",
   "license": "BSD",

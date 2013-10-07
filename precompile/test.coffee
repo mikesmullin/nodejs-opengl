@@ -2,15 +2,41 @@ log = console.log
 Engine = require './Engine'
 { vec3, mat4, quat4 } = Engine.Matrix
 engine = new Engine()
-gl = engine.gl
-gl.clearColor 0, 0, 0, 1
-gl.enable gl.DEPTH_TEST
 
-xRot = yRot = xSpeed = ySpeed = 0
-cubeVertexPositionBuffer = undefined
-cubeVertexNormalBuffer = undefined
-cubeVerticesColorBuffer = undefined
-cubeVertexIndexBuffer = undefined
+cubeVertexPositionBuffer = engine.newBuffer 'ARRAY_BUFFER', Float32Array, 3, 24, [
+  -1.0, -1.0,  1.0,  1.0, -1.0,  1.0,  1.0,  1.0,  1.0, -1.0,  1.0,  1.0, # Front face
+  -1.0, -1.0, -1.0, -1.0,  1.0, -1.0,  1.0,  1.0, -1.0,  1.0, -1.0, -1.0, # Back face
+  -1.0,  1.0, -1.0, -1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0, -1.0, # Top face
+  -1.0, -1.0, -1.0,  1.0, -1.0, -1.0,  1.0, -1.0,  1.0, -1.0, -1.0,  1.0, # Bottom face
+   1.0, -1.0, -1.0,  1.0,  1.0, -1.0,  1.0,  1.0,  1.0,  1.0, -1.0,  1.0, # Right face
+  -1.0, -1.0, -1.0, -1.0, -1.0,  1.0, -1.0 , 1.0,  1.0, -1.0,  1.0, -1.0  # Left face
+]
+cubeVertexNormalBuffer = engine.newBuffer 'ARRAY_BUFFER', Float32Array, 3, 24, [
+   0.0,  0.0,  1.0,  0.0,  0.0,  1.0,  0.0,  0.0,  1.0,  0.0,  0.0,  1.0, # Front face
+   0.0,  0.0, -1.0,  0.0,  0.0, -1.0,  0.0,  0.0, -1.0,  0.0,  0.0, -1.0, # Back face
+   0.0,  1.0,  0.0,  0.0,  1.0,  0.0,  0.0,  1.0,  0.0,  0.0,  1.0,  0.0, # Top face
+   0.0, -1.0,  0.0,  0.0, -1.0,  0.0,  0.0, -1.0,  0.0,  0.0, -1.0,  0.0, # Bottom face
+   1.0,  0.0,  0.0,  1.0,  0.0,  0.0,  1.0,  0.0,  0.0,  1.0,  0.0,  0.0, # Right face
+  -1.0,  0.0,  0.0, -1.0,  0.0,  0.0, -1.0,  0.0,  0.0, -1.0,  0.0,  0.0  # Left face
+]
+cubeVerticesColorBuffer = engine.newBuffer 'ARRAY_BUFFER', Float32Array, null, null, [
+  1.0, 1.0, 1.0, 0.5,  1.0, 1.0, 1.0, 0.5,  1.0, 1.0, 1.0, 0.5,  1.0, 1.0, 1.0, 0.5, # Front face: white
+  1.0, 0.0, 0.0, 0.5,  1.0, 0.0, 0.0, 0.5,  1.0, 0.0, 0.0, 0.5,  1.0, 0.0, 0.0, 0.5, # Back face: red
+  0.0, 1.0, 0.0, 0.5,  0.0, 1.0, 0.0, 0.5,  0.0, 1.0, 0.0, 0.5,  0.0, 1.0, 0.0, 0.5, # Top face: green
+  0.0, 0.0, 1.0, 0.5,  0.0, 0.0, 1.0, 0.5,  0.0, 0.0, 1.0, 0.5,  0.0, 0.0, 1.0, 0.5, # Bottom face: blue
+  1.0, 1.0, 0.0, 0.5,  1.0, 1.0, 0.0, 0.5,  1.0, 1.0, 0.0, 0.5,  1.0, 1.0, 0.0, 0.5, # Right face: yellow
+  1.0, 0.0, 1.0, 0.5,  1.0, 0.0, 1.0, 0.5,  1.0, 0.0, 1.0, 0.5,  1.0, 0.0, 1.0, 0.5  # Left face: purple
+]
+cubeVertexIndexBuffer = engine.newBuffer 'ELEMENT_ARRAY_BUFFER', Uint16Array, 1, 36, [
+  0,  1,  2,    0,  2,  3,  # Front face
+  4,  5,  6,    4,  6,  7,  # Back face
+  8,  9,  10,   8,  10, 11, # Top face
+  12, 13, 14,   12, 14, 15, # Bottom face
+  16, 17, 18,   16, 18, 19, # Right face
+  20, 21, 22,   20, 22, 23  # Left face
+]
+xRot = 0.2; yRot = 0.1; xSpeed = 0.2; ySpeed = 0.2
+z = -5.0
 
 pMatrix = mat4.create()
 mvMatrix = mat4.create()
@@ -24,20 +50,17 @@ engine.on 'tick', -> # draw
   mat4.rotate mvMatrix, degToRad(xRot), [1, 0, 0]
   mat4.rotate mvMatrix, degToRad(yRot), [0, 1, 0]
   @gl.bindBuffer @gl.ARRAY_BUFFER, cubeVertexPositionBuffer
-  @gl.vertexAttribPointer shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, @gl.FLOAT, false, 0, 0
+  @gl.vertexAttribPointer @shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, @gl.FLOAT, false, 0, 0
   @gl.blendFunc @gl.SRC_ALPHA, @gl.ONE_MINUS_SRC_ALPHA
   @gl.enable @gl.BLEND
   @gl.disable @gl.DEPTH_TEST
   @gl.bindBuffer @gl.ARRAY_BUFFER, cubeVerticesColorBuffer
-  @gl.vertexAttribPointer shaderProgram.vertexColorAttribute, 4, @gl.FLOAT, false, 0, 0
+  @gl.vertexAttribPointer @shaderProgram.vertexColorAttribute, 4, @gl.FLOAT, false, 0, 0
   @gl.enable @gl.CULL_FACE
   @gl.cullFace @gl.FRONT
   @gl.bindBuffer @gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer
-  setMatrixUniforms = ->
-    @gl.uniformMatrix4fv shaderProgram.pMatrixUniform, false, pMatrix
-    @gl.uniformMatrix4fv shaderProgram.mvMatrixUniform, false, mvMatrix
-    return
-  setMatrixUniforms()
+  @gl.uniformMatrix4fv @shaderProgram.pMatrixUniform, false, pMatrix
+  @gl.uniformMatrix4fv @shaderProgram.mvMatrixUniform, false, mvMatrix
   @gl.drawElements @gl.TRIANGLES, cubeVertexIndexBuffer.numItems, @gl.UNSIGNED_SHORT, 0
   @gl.cullFace @gl.BACK
   @gl.drawElements @gl.TRIANGLES, cubeVertexIndexBuffer.numItems, @gl.UNSIGNED_SHORT, 0
@@ -54,52 +77,18 @@ engine.on 'tick', (timeNow) -> # animate
     @fps = Math.round(1000 / elapsed)
     xRot += (xSpeed * elapsed) / 1000.0
     yRot += (ySpeed * elapsed) / 1000.0
-  lastTime = timeNow
+  @lastTime = timeNow
   return
 
-cubeVertexPositionBuffer = engine.newBuffer 3, 24, [
-  -1.0, -1.0,  1.0,  1.0, -1.0,  1.0,  1.0,  1.0,  1.0, -1.0,  1.0,  1.0, # Front face
-  -1.0, -1.0, -1.0, -1.0,  1.0, -1.0,  1.0,  1.0, -1.0,  1.0, -1.0, -1.0, # Back face
-  -1.0,  1.0, -1.0, -1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0,  1.0, -1.0, # Top face
-  -1.0, -1.0, -1.0,  1.0, -1.0, -1.0,  1.0, -1.0,  1.0, -1.0, -1.0,  1.0, # Bottom face
-   1.0, -1.0, -1.0,  1.0,  1.0, -1.0,  1.0,  1.0,  1.0,  1.0, -1.0,  1.0, # Right face
-  -1.0, -1.0, -1.0, -1.0, -1.0,  1.0, -1.0 , 1.0,  1.0, -1.0,  1.0, -1.0  # Left face
-]
+engine.on 'keydown', ->
+  z -= 0.40  if @currentlyPressedKeys[93] # ]
+  z += 0.40  if @currentlyPressedKeys[92] # \
+  ySpeed -= 20  if @currentlyPressedKeys[285] # Left cursor key
+  ySpeed += 20  if @currentlyPressedKeys[286] # Right cursor key
+  xSpeed -= 20  if @currentlyPressedKeys[283] # Up cursor key
+  xSpeed += 20  if @currentlyPressedKeys[284] # Down cursor key
+  return
 
-cubeVertexNormalBuffer = engine.newBuffer 3, 24, [
-   0.0,  0.0,  1.0,  0.0,  0.0,  1.0,  0.0,  0.0,  1.0,  0.0,  0.0,  1.0, # Front face
-   0.0,  0.0, -1.0,  0.0,  0.0, -1.0,  0.0,  0.0, -1.0,  0.0,  0.0, -1.0, # Back face
-   0.0,  1.0,  0.0,  0.0,  1.0,  0.0,  0.0,  1.0,  0.0,  0.0,  1.0,  0.0, # Top face
-   0.0, -1.0,  0.0,  0.0, -1.0,  0.0,  0.0, -1.0,  0.0,  0.0, -1.0,  0.0, # Bottom face
-   1.0,  0.0,  0.0,  1.0,  0.0,  0.0,  1.0,  0.0,  0.0,  1.0,  0.0,  0.0, # Right face
-  -1.0,  0.0,  0.0, -1.0,  0.0,  0.0, -1.0,  0.0,  0.0, -1.0,  0.0,  0.0  # Left face
-]
-
-_colors = [
-  1.0, 1.0, 1.0, 0.5, # Front face: white
-  1.0, 0.0, 0.0, 0.5, # Back face: red
-  0.0, 1.0, 0.0, 0.5, # Top face: green
-  0.0, 0.0, 1.0, 0.5, # Bottom face: blue
-  1.0, 1.0, 0.0, 0.5, # Right face: yellow
-  1.0, 0.0, 1.0, 0.5  # Left face: purple
-]
-colors = []; colors = colors.concat _colors.slice j*4, (j*4)+4 for i in [0...4] for j in [0...6]
-cubeVerticesColorBuffer = engine.newBuffer undefined, undefined,
-  arrayRepeat([ 1.0, 1.0, 1.0, 0.5 ], 4).concat # Front face: white
-  arrayRepeat([ 1.0, 0.0, 0.0, 0.5 ], 4).concat # Back face: red
-  arrayRepeat([ 0.0, 1.0, 0.0, 0.5 ], 4).concat # Top face: green
-  arrayRepeat([ 0.0, 0.0, 1.0, 0.5 ], 4).concat # Bottom face: blue
-  arrayRepeat([ 1.0, 1.0, 0.0, 0.5 ], 4).concat # Right face: yellow
-  arrayRepeat([ 1.0, 0.0, 1.0, 0.5 ], 4)        # Left face: purple
-
-
-
-
-
-
-
-
-
-
-
+engine.gl.clearColor 0, 0, 0, 1
+engine.gl.enable engine.gl.DEPTH_TEST
 engine.start()

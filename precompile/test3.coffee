@@ -27,8 +27,7 @@ yRot = 0
 ySpeed = -5
 z = -5.0
 
-# TODO: next line doesn't work; compare test2.coffee example
-document.setTitle "CoffeeScript Node.JS OpenGL Demo"
+document.setTitle "CoffeeScript Node.JS OpenGL Demo" # TODO: this works but later is overridden, somehow
 
 document.on "resize", (evt) ->
   document.createWindow evt.width, evt.height
