@@ -64,15 +64,15 @@ install cygwin 17
     customize zsh config with my settings
       autoload -U compinit
       compinit -C
-    apply the blue color config for mintty 
+    apply the blue color config for mintty
       http://superuser.com/questions/444558/how-do-i-change-the-unreadable-dark-blue-color-cygwin-uses-for-directories
     fix startup errors on cygwin; just append `restart` to `.zshrc`
   install tmux
     follow guide http://java.ociweb.com/mark/programming/tmuxInCygwin.html
       libevent-2.0.21-stable.tar.gz
       ncurses-5.9.tar.gz
-    checkout 1.8 branch? maybe head will work too
-    apply patch https://gist.github.com/10sr/5794078
+    checkout 1.8 branch for sure
+    apply patch before autogen step https://gist.github.com/10sr/5794078
     include CFLAGS -lcurses -static
   install gvim
     alias gvim="/cygdrive/c/Program\ Files\ \(x86\)/Vim/vim74/gvim.exe"
