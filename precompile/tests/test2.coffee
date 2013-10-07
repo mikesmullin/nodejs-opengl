@@ -45,22 +45,21 @@ glfw.SwapInterval 0 #1
 # 0 for vsync off
 start = glfw.GetTime()
 loop
-  
   # Get time and mouse position
   end = glfw.GetTime()
   delta = end - start
   start = end
-  
+
   log('time: '+(delta*1000)+'ms');
   mouse = glfw.GetMousePos()
-  
+
   #log("mouse: "+mouse.x+', '+mouse.y);
-  
+
   # Get window size (may be different than the requested size)
   wsize = glfw.GetWindowSize()
-  
+
   #log("window size: "+wsize.width+', '+wsize.height);
-  
+
   # Swap buffers
   glfw.SwapBuffers()
   break unless not glfw.GetKey(glfw.KEY_ESC) and glfw.GetWindowParam(glfw.OPENED)

@@ -22,9 +22,9 @@ module.exports = class Engine
 
   constructor: ->
     @document = WebGL.document()
-    canvas = @document.createElement 'cube-canvas' # TODO: rename to 'canvas'?
-    @document.setTitle "CoffeeScript Node.JS OpenGL Demo"
-    @gl = canvas.getContext 'experimental-webgl' # TODO: rename to another string?
+    canvas = @document.createElement 'canvas'
+    @document.setTitle 'CoffeeScript Node.JS OpenGL Demo'
+    @gl = canvas.getContext 'webgl'
     @gl.viewportWidth = canvas.width
     @gl.viewportHeight = canvas.height
     @_bindKeys()
