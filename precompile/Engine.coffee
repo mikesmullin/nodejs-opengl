@@ -10,7 +10,8 @@ fs = require 'fs'
 path = require 'path'
 glob = require 'glob'
 WebGL = require 'node-webgl'
-Matrix = require 'gl-matrix'
+#Matrix = require 'gl-matrix'
+Matrix = require './old-gl-matrix'
 module.exports = class Engine
   @Matrix: Matrix
   gl: null

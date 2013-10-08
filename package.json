@@ -12,8 +12,8 @@
   "license": "BSD",
   "dependencies": {
     "node-glfw": "~0.1.2",
-    "node-webgl": "mikeseven/node-webgl",
     "gl-matrix": "~2.0.0",
-    "glob": "~3.2.6"
+    "glob": "~3.2.6",
+    "node-webgl": "~0.1.4"
   }
 }
