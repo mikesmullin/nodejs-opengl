@@ -1,11 +1,3 @@
-###
-The job of the Engine should be:
-* cross-platform DirectX or OpenGL integration
-* cross-platform C-binding or Browser WebGL integration
-* cross-platform Audio, KB, Mouse integration
-* fast matrix math functions
-###
-
 fs = require 'fs'
 path = require 'path'
 glob = require 'glob'
