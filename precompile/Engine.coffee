@@ -1,3 +1,11 @@
+###
+The job of the Engine should be:
+* cross-platform DirectX or OpenGL integration
+* cross-platform C-binding or Browser WebGL integration
+* cross-platform Audio, KB, Mouse integration
+* fast matrix math functions
+###
+
 fs = require 'fs'
 path = require 'path'
 glob = require 'glob'
@@ -57,35 +65,67 @@ module.exports = class Engine
     return
 
   _attachShaders: ->
-    @shaderProgram = @gl.createProgram()
-    files = glob.sync './shaders/*.c'
-    return unless files
-    shadersFound = false
-    for file in files
-      src = fs.readFileSync file, encoding: 'utf8'
-      shader = null
-      if file.match /fragment/
-        shader = @gl.createShader @gl.FRAGMENT_SHADER
-      else if file.match /shader/
-        shader = @gl.createShader @gl.VERTEX_SHADER
-      if shader
-        shadersFound = true
-        @gl.shaderSource shader, src
-        @gl.compileShader shader
-        unless @gl.getShaderParameter shader, @gl.COMPILE_STATUS
-          throw @gl.getShaderInfoLog shader
-        @gl.attachShader @shaderProgram, shader
-    return unless shadersFound
-    @gl.linkProgram @shaderProgram
-    unless @gl.getProgramParameter @shaderProgram, @gl.LINK_STATUS
-      throw 'Could not initialize shaders. Error: ' + @gl.getProgramInfoLog @shaderProgram
-    @gl.useProgram @shaderProgram
-    @shaderProgram.vertexPositionAttribute = @gl.getAttribLocation @shaderProgram, 'aVertexPosition'
-    @gl.enableVertexAttribArray @shaderProgram.vertexPositionAttribute
-    @shaderProgram.vertexColorAttribute = @gl.getAttribLocation @shaderProgram, 'aVertexColor'
-    @gl.enableVertexAttribArray @shaderProgram.vertexColorAttribute
-    @shaderProgram.pMatrixUniform = @gl.getUniformLocation @shaderProgram, 'uPMatrix'
-    @shaderProgram.mvMatrixUniform = @gl.getUniformLocation @shaderProgram, 'uMVMatrix'
+
+    # Creates fragment shader (returns white color for any position)
+    fshader = @gl.createShader(@gl.FRAGMENT_SHADER)
+    @gl.shaderSource fshader, "void main(void) {gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);}"
+    @gl.compileShader fshader
+    alert "Error during fragment shader compilation:\n" + @gl.getShaderInfoLog(fshader)  unless @gl.getShaderParameter(fshader, @gl.COMPILE_STATUS)
+
+    # Creates vertex shader (converts 2D point position to coordinates)
+    vshader = @gl.createShader(@gl.VERTEX_SHADER)
+    @gl.shaderSource vshader, "attribute vec2 ppos; void main(void) { gl_Position = vec4(ppos.x, ppos.y, 0.0, 1.0);}"
+    @gl.compileShader vshader
+    alert "Error during vertex shader compilation:\n" + @gl.getShaderInfoLog(vshader)  unless @gl.getShaderParameter(vshader, @gl.COMPILE_STATUS)
+
+    # Creates program and links shaders to it
+    program = @gl.createProgram()
+    @gl.attachShader program, fshader
+    @gl.attachShader program, vshader
+    @gl.linkProgram program
+    alert "Error during program linking:\n" + @gl.getProgramInfoLog(program)  unless @gl.getProgramParameter(program, @gl.LINK_STATUS)
+
+    # Validates and uses program in the GL context
+    @gl.validateProgram program
+    alert "Error during program validation:\n" + @gl.getProgramInfoLog(program)  unless @gl.getProgramParameter(program, @gl.VALIDATE_STATUS)
+    @gl.useProgram program
+
+    # Gets address of the input 'attribute' of the vertex shader
+    vattrib = @gl.getAttribLocation(program, "ppos")
+    alert "Error during attribute address retrieval"  if vattrib is -1
+    @gl.enableVertexAttribArray vattrib
+    @shaderProgram = program
+    @vattrib = vattrib
+
+    #@shaderProgram = @gl.createProgram()
+    #files = glob.sync './shaders/*.c'
+    #return unless files
+    #shadersFound = false
+    #for file in files
+    #  src = fs.readFileSync file, encoding: 'utf8'
+    #  shader = null
+    #  if file.match /fragment/
+    #    shader = @gl.createShader @gl.FRAGMENT_SHADER
+    #  else if file.match /shader/
+    #    shader = @gl.createShader @gl.VERTEX_SHADER
+    #  if shader
+    #    shadersFound = true
+    #    @gl.shaderSource shader, src
+    #    @gl.compileShader shader
+    #    unless @gl.getShaderParameter shader, @gl.COMPILE_STATUS
+    #      throw @gl.getShaderInfoLog shader
+    #    @gl.attachShader @shaderProgram, shader
+    #return unless shadersFound
+    #@gl.linkProgram @shaderProgram
+    #unless @gl.getProgramParameter @shaderProgram, @gl.LINK_STATUS
+    #  throw 'Could not initialize shaders. Error: ' + @gl.getProgramInfoLog @shaderProgram
+    #@gl.useProgram @shaderProgram
+    #@shaderProgram.vertexPositionAttribute = @gl.getAttribLocation @shaderProgram, 'aVertexPosition'
+    #@gl.enableVertexAttribArray @shaderProgram.vertexPositionAttribute
+    #@shaderProgram.vertexColorAttribute = @gl.getAttribLocation @shaderProgram, 'aVertexColor'
+    #@gl.enableVertexAttribArray @shaderProgram.vertexColorAttribute
+    #@shaderProgram.pMatrixUniform = @gl.getUniformLocation @shaderProgram, 'uPMatrix'
+    #@shaderProgram.mvMatrixUniform = @gl.getUniformLocation @shaderProgram, 'uMVMatrix'
     return
 
   newBuffer: (type, unit, itemSize, itemCount, matrix) ->
